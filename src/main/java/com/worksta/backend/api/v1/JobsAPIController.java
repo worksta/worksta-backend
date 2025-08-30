@@ -8,9 +8,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.money.Monetary;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.*;
 
 @RestController

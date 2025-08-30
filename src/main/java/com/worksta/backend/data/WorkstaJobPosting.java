@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.money.MonetaryAmount;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.UUID;
 /**
  * A Worksta job posting. Businesses post jobs to the Worksta
  * job pool, and individual jobs are modelled by this class.
- *
  * For efficiency, individual shifts are contained within one {@link WorkstaJobPosting} instance,
  * instead of each shift having its own instance.
  *
