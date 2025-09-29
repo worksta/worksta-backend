@@ -34,7 +34,6 @@ public class WorkstaJobPosting {
 
 
     @ManyToOne
-    @JoinColumn(name = "business_id")
     private WorkstaBusiness business;
     private String title;
     private String description;
@@ -46,7 +45,7 @@ public class WorkstaJobPosting {
     @ElementCollection
     private List<String> tags;
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "jobPosting")
     private List<JobShift> jobShifts;
 
     @Data
@@ -66,7 +65,6 @@ public class WorkstaJobPosting {
         private boolean available;
 
         @ManyToOne
-        @JoinColumn(name = "job_posting_id")
         private WorkstaJobPosting jobPosting;
 
         @ElementCollection
