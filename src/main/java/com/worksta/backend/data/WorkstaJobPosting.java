@@ -1,5 +1,7 @@
 package com.worksta.backend.data;
 
+import com.worksta.backend.data.user.WorkstaBusiness;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,7 +32,10 @@ public class WorkstaJobPosting {
     @GeneratedValue
     private UUID id;
 
-    private String business;
+
+    @ManyToOne
+    @JoinColumn(name = "business_id")
+    private WorkstaBusiness business;
     private String title;
     private String description;
     private String location;
@@ -41,21 +46,43 @@ public class WorkstaJobPosting {
     @ElementCollection
     private List<String> tags;
 
-    @ElementCollection
-    @CollectionTable
+    @OneToMany(cascade = CascadeType.ALL)
     private List<JobShift> jobShifts;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Entity
+    public static final class JobShift {
+        @Id
+        @GeneratedValue
+        private UUID id;
+        private LocalDate date;
+        private LocalTime startTime;
+        private LocalTime endTime;
+        private double hourlyRate;
+        private double fixedAmount;
+        private boolean available;
+
+        @ManyToOne
+        @JoinColumn(name = "job_posting_id")
+        private WorkstaJobPosting jobPosting;
+
+        @ElementCollection
+        @CollectionTable
+        private List<JobApplication> jobApplications;
+    }
 
     @Embeddable
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class JobShift {
-        private LocalDate date;
-        private LocalTime startTime;
-        private LocalTime endTime;
-        private double hourlyRate;
-        private double fixedAmount;
+    public static final class JobApplication {
+        private UUID workerID; // unique; applicants make only one job posting
+        private boolean accepted;
+        private @Nullable String coverMessage;
     }
 
 }

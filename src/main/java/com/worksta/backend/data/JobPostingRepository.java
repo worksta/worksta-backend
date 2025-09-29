@@ -1,5 +1,6 @@
 package com.worksta.backend.data;
 
+import com.worksta.backend.data.user.WorkstaBusiness;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.repository.CrudRepository;
@@ -15,7 +16,7 @@ import java.util.UUID;
 public interface JobPostingRepository extends PagingAndSortingRepository<WorkstaJobPosting, UUID>,
         CrudRepository<WorkstaJobPosting, UUID> {
 
-    Slice<WorkstaJobPosting> getWorkstaJobPostingByBusiness(String business, Pageable pageable);
+    Slice<WorkstaJobPosting> getWorkstaJobPostingByBusiness(WorkstaBusiness business);
 
     WorkstaJobPosting getWorkstaJobPostingById(UUID id);
     
