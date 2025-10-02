@@ -189,6 +189,7 @@ public class JobsAPIController {
             private String location;
             private List<String> tags;
             private List<JobShiftSpecification> shifts;
+            @Data
             public static final class JobShiftSpecification {
                 private LocalDate date;
                 private LocalTime startTime;
