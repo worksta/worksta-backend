@@ -1,6 +1,7 @@
 package com.worksta.backend.data;
 
-import com.worksta.backend.data.user.WorkstaBusiness;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -30,11 +32,11 @@ public class WorkstaJobPosting {
 
     @Id
     @GeneratedValue
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
 
-    @ManyToOne
-    private WorkstaBusiness business;
+    private UUID businessId;
     private String title;
     private String description;
     private String location;
@@ -45,7 +47,8 @@ public class WorkstaJobPosting {
     @ElementCollection
     private List<String> tags;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "jobPosting")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "jobPosting", orphanRemoval = true)
+    @JsonManagedReference
     private List<JobShift> jobShifts;
 
     @Data
@@ -55,16 +58,21 @@ public class WorkstaJobPosting {
     @Entity
     public static final class JobShift {
         @Id
+        @Column(columnDefinition = "uuid", updatable = false, nullable = false)
         @GeneratedValue
         private UUID id;
+
         private LocalDate date;
         private LocalTime startTime;
         private LocalTime endTime;
-        private double hourlyRate;
-        private double fixedAmount;
+
+        private BigDecimal hourlyRate;
+        private BigDecimal fixedAmount;
+
         private boolean available;
 
-        @ManyToOne
+        @ManyToOne(cascade = CascadeType.ALL)
+        @JsonBackReference
         private WorkstaJobPosting jobPosting;
 
         @ElementCollection

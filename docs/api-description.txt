@@ -1,0 +1,145 @@
+Worksta Backend – REST API v1
+=============================
+
+Base URL: /api/v1
+Every JSON request/response uses UTF-8 and the header:
+  Content-Type: application/json
+
+Unless stated otherwise **all protected calls require**  
+  Authorization: Bearer <JWT>
+
+The JWT is obtained from the /auth/login route and must be
+sent with each subsequent request.
+
+────────────────────────────────────────────────────────
+1. Authentication
+────────────────────────────────────────────────────────
+POST  /auth/login
+-----------------
+Request:
+{
+  "username": "alice",
+  "password": "s3cr3t"
+}
+
+Response 200:
+{
+  "token": "<jwt>"
+}
+
+POST  /auth/register
+--------------------
+Creates a user account *and* chooses a role.
+
+Request:
+{
+  "username": "bob",
+  "password": "p@ssword",
+  "worker":  true,   // exactly one of these must be true
+  "business": false  // worker XOR business
+}
+
+Response 200: empty body  
+Errors:
+• 400 – username taken  
+• 400 – invalid role selection
+
+POST  /auth/logout
+------------------
+Stateless. Frontend simply drops the token.
+Always returns 200.
+
+────────────────────────────────────────────────────────
+2. Job Postings
+────────────────────────────────────────────────────────
+GET  /jobs/
+-----------
+Optional query params (choose at most **one** of the first two):
+• jid=<uuid>  – single job posting
+• bid=<uuid>  – postings by business id  
+• page=<n>    – pagination (defaults 0; size 10)
+
+Returns 200:
+[
+  {
+    "id": "…",               // UUID
+    "title": "Barista",
+    "description": "Make coffee …",
+    "location": "London",
+    "tags": ["coffee","morning"],
+    "shifts": [
+      {                      // see JobShift spec below
+        "id": "…",
+        "date": "2025-11-12",
+        "startTime": "08:00:00",
+        "endTime": "12:00:00",
+        "hourlyRate": 12.50
+      }
+    ],
+    "business": {
+      "id": "…",
+      "name": "Coffee Ltd"
+    }
+  },
+  …
+]
+
+POST  /jobs/create          (role: BUSINESS)
+-------------------------
+Request (example):
+{
+  "title": "Waiter",
+  "description": "Serve tables",
+  "location": "Paris",
+  "tags": ["food","service"],
+  "shifts": [
+    {
+      "date": "2025-12-01",
+      "startTime": "18:00:00",
+      "endTime":   "23:00:00",
+      "hourlyRate": 15.00
+    }
+  ]
+}
+
+Response 200: newly created posting (same shape as GET)
+
+POST  /jobs/{shiftId}/apply/   (role: WORKER)
+----------------------------------------------
+Path variable shiftId refers to a **Job Shift** UUID.
+Request:
+{
+  "coverMessage": "I have 3 years of experience…"
+}
+
+Response 200: empty body  
+Errors:
+• 404 – shift not found
+
+────────────────────────────────────────────────────────
+3. Data model snippets
+────────────────────────────────────────────────────────
+JobShift
+--------
+{
+  "id": "…",
+  "date": "YYYY-MM-DD",
+  "startTime": "HH:MM:SS",
+  "endTime": "HH:MM:SS",
+  // choose ONE of the following pricing forms
+  "hourlyRate": 12.34,
+  "fixedAmount": 100.00
+}
+
+Notes:
+• `hourlyRate` **xor** `fixedAmount`; supplying both returns 400.
+• Currency is implicitly the backend default (e.g., EUR).
+
+────────────────────────────────────────────────────────
+4. Error Codes (summary)
+────────────────────────────────────────────────────────
+400 Bad Request – validation / business rule failure  
+401 Unauthorized – missing or bad JWT  
+403 Forbidden – valid JWT but missing required role  
+404 Not Found – resource does not exist  
+500+  – unexpected server error

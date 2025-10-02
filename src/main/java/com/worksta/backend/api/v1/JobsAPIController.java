@@ -10,7 +10,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/jobs")
@@ -58,16 +62,15 @@ public class JobsAPIController {
             ));
         } else {
             if(bid != null) {
-
-//                var x = jobPostingRepository.getWorkstaJobPostingByBusiness(
-//                        null
-//                );
-//                return ResponseEntity.ok(
-//                        x
-//                );
+                var x = jobPostingRepository.findAllByBusinessId(
+                        bid,
+                        PageRequest.of(page, 10)
+                ).toList();
+                return ResponseEntity.ok(
+                        x
+                );
             }
             var x = jobPostingRepository.findAll(PageRequest.of(page, 10))
-                    .stream()
                     .toList();
             return ResponseEntity.ok(
                     x
@@ -116,15 +119,28 @@ public class JobsAPIController {
                 .getAuthentication().getName();
         WorkstaBusiness business = businessRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalStateException("Business account not found for " + email));
-
         var posting = WorkstaJobPosting.builder()
                 .title(requestBody.getTitle())
                 .description(requestBody.getDescription())
                 .location(requestBody.getLocation())
                 .tags(requestBody.getTags())
-                .jobShifts(requestBody.getShifts())
-                .business(business)
+                .businessId(business.getId())
                 .build();
+        var shifts = requestBody.shifts.stream().map(
+                shift -> WorkstaJobPosting.JobShift.builder()
+                        .date(shift.date)
+                        .startTime(shift.startTime)
+                        .endTime(shift.endTime)
+                        .hourlyRate(shift.hourlyRate)
+                        .fixedAmount(shift.fixedAmount)
+                        //
+                        .jobApplications(new ArrayList<>())
+                        .available(true)
+                        .jobPosting(posting)
+                        .build()
+        ).collect(Collectors.toCollection(ArrayList::new));
+        jobShiftRepository.saveAll(shifts);
+        posting.setJobShifts(shifts);
         jobPostingRepository.save(posting);
         return ResponseEntity.ok(posting);
     }
@@ -172,7 +188,14 @@ public class JobsAPIController {
             private String description;
             private String location;
             private List<String> tags;
-            private List<WorkstaJobPosting.JobShift> shifts;
+            private List<JobShiftSpecification> shifts;
+            public static final class JobShiftSpecification {
+                private LocalDate date;
+                private LocalTime startTime;
+                private LocalTime endTime;
+                private BigDecimal hourlyRate;
+                private BigDecimal fixedAmount;
+            }
         }
         @Data
         public static final class CreateJobApplicationRequestBody {

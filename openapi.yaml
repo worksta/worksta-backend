@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  title: Worksta Backend API
+  version: "1.0"
+  description: >
+    HTTP/JSON API exposed by the Worksta demo backend.
+    All write operations require a valid **JWT** obtained from `/api/v1/auth/login`.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: [ ]
+tags:
+  - name: Authentication
+  - name: Jobs
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log user in and obtain JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationRequest'
+      responses:
+        "200":
+          description: JWT issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        "401":
+          description: Invalid credentials
+      security: []   # public
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Create an in-memory account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        "200": {description: Registered}
+        "400": {description: Validation failed}
+      security: []
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Stateless logout (no-op on server)
+      responses:
+        "200": {description: Token forgotten on the client}
+      security: []
+  /api/v1/jobs/:
+    get:
+      tags: [Jobs]
+      summary: Query job postings
+      parameters:
+        - in: query
+          name: jid
+          schema: {type: string, format: uuid}
+          description: Return the unique posting with this ID
+        - in: query
+          name: bid
+          schema: {type: string, format: uuid}
+          description: Return postings created by business ID
+        - in: query
+          name: page
+          schema: {type: integer, minimum: 0, default: 0}
+      responses:
+        "200":
+          description: A collection of job postings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkstaJobPosting'
+  /api/v1/jobs/create:
+    post:
+      tags: [Jobs]
+      summary: Create a new job posting (BUSINESS only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobPostingCreateRequest'
+      responses:
+        "200":
+          description: Newly created posting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkstaJobPosting'
+        "403": {description: Not a BUSINESS account}
+  /api/v1/jobs/{id}/apply/:
+    post:
+      tags: [Jobs]
+      summary: Apply for one job shift (WORKER only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobApplicationCreateRequest'
+      responses:
+        "200": {description: Application stored}
+        "404": {description: Shift not found}
+        "403": {description: Not a WORKER account}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    # --- Auth ---
+    AuthenticationRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: {type: string, format: email}
+        password: {type: string, format: password}
+    RegistrationRequest:
+      allOf:
+        - $ref: '#/components/schemas/AuthenticationRequest'
+        - type: object
+          required: [role]
+          properties:
+            role:
+              type: string
+              enum: [WORKER, BUSINESS]
+    AuthenticationResponse:
+      type: object
+      properties:
+        token:
+          type: string
+    # --- Jobs ---
+    JobPostingCreateRequest:
+      type: object
+      required: [title, description, location, shifts]
+      properties:
+        title: {type: string}
+        description: {type: string}
+        location: {type: string}
+        tags:
+          type: array
+          items: {type: string}
+        shifts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/JobShift'
+    JobApplicationCreateRequest:
+      type: object
+      properties:
+        coverMessage: {type: string}
+    WorkstaJobPosting:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        business: {$ref: '#/components/schemas/WorkstaBusiness'}
+        title: {type: string}
+        description: {type: string}
+        location: {type: string}
+        jobRequirements:
+          type: array
+          items: {type: string}
+        tags:
+          type: array
+          items: {type: string}
+        jobShifts:
+          type: array
+          items: {$ref: '#/components/schemas/JobShift'}
+    WorkstaBusiness:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        email: {type: string, format: email}
+        description: {type: string}
+    JobShift:
+      type: object
+      required: [date, startTime, endTime]
+      properties:
+        shiftId: {type: string, format: uuid}
+        date:   {type: string, format: date}
+        startTime: {type: string, pattern: "^\\d{2}:\\d{2}(:\\d{2})?$"}
+        endTime:   {type: string, pattern: "^\\d{2}:\\d{2}(:\\d{2})?$"}
+        hourlyRate:  {type: number, format: double, nullable: true}
+        fixedAmount: {type: number, format: double, nullable: true}
+        available:   {type: boolean, default: true}
+        jobApplications:
+          type: array
+          items: {$ref: '#/components/schemas/JobApplication'}
+    JobApplication:
+      type: object
+      properties:
+        workerID: {type: string, format: uuid}
+        accepted: {type: boolean}
+        coverMessage: {type: string, nullable: true}

@@ -25,7 +25,7 @@ public class WorkstaBusiness {
     private String email;
     private String description; // edit later
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "business")
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<WorkstaJobPosting> jobPostings;
 
 }
